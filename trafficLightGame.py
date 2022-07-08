@@ -43,6 +43,8 @@ class GameGUI:
         self.game_mode_dropdown = None
         self.num_chars_entry = None
         self.num_attempts_entry = None
+        self.attempt_entries = None
+        self.attempt_num = 0
 
         # Create selection frame for selecting game options
         self.selection_frame = Frame(parent)
@@ -123,6 +125,7 @@ class GameGUI:
 
         num_attempts = int(self.num_attempts.get())
         num_chars = int(self.num_chars.get())
+        self.attempt_entries = [["" for x in range(num_chars)] for y in range(num_attempts)]
 
         # Create header for selection data frame
         header_frame = Frame(self.playing_frame, style='header.TFrame')
@@ -136,37 +139,54 @@ class GameGUI:
 
         game_mode = self.game_modes.index(self.game_mode.get())
         place_vals = ["M", "HTh", "TTh", "Th", "H", "T", "O"]
-        num_rows = num_attempts
+        start_row = 0
+        end_row = num_attempts
 
         if game_mode == 0:
-            num_rows += 1
+            start_row += 1
+            end_row += 1
 
-        for i in range(num_rows):
+            for n in range(num_chars):
+                label_idx = (len(place_vals) - num_chars) + n
+                label = Label(
+                    chars_frame,
+                    text=place_vals[label_idx],
+                    font=self.style_consts["HEADER_FONT"],
+                    justify='center'
+                )
+                label.grid(row=0, column=n, padx=pad_x, pady=(pad_y, 0))
+
+        row_num = 0
+        for i in range(start_row, end_row):
             for j in range(num_chars):
-                if game_mode == 0 and i == 0:
-                    label_idx = (len(place_vals) - num_chars) + j
-                    label = Label(
-                        chars_frame,
-                        text=place_vals[label_idx],
-                        font=self.style_consts["HEADER_FONT"],
-                        justify='center'
-                    )
-                    label.grid(row=i, column=j, padx=pad_x, pady=(pad_y, 0))
+                entry = Entry(
+                    chars_frame,
+                    width=10,
+                    font=self.style_consts["HEADER_FONT"],
+                    justify='center'
+                )
+                if row_num > 0:
+                    entry.config(state='disabled')
 
+                if game_mode == 0:
+                    val_cmd = (chars_frame.register(validate_int_entry), '%P', '%d')
                 else:
-                    entry = Entry(
-                        chars_frame,
-                        width=10,
-                        font=self.style_consts["HEADER_FONT"],
-                        justify='center'
-                    )
-                    if game_mode == 0:
-                        val_cmd = (chars_frame.register(validate_int_entry), '%P', '%d')
-                    else:
-                        val_cmd = (chars_frame.register(validate_str_entry), '%P', '%d')
-                        entry.bind('<KeyRelease>', to_uppercase)
-                    entry.configure(validate="key", validatecommand=val_cmd)
-                    entry.grid(row=i, column=j, padx=pad_x, pady=pad_y)
+                    val_cmd = (chars_frame.register(validate_str_entry), '%P', '%d')
+                    entry.bind('<KeyRelease>', to_uppercase)
+                    entry.bind('<FocusOut>', to_uppercase)
+                entry.configure(validate="key", validatecommand=val_cmd)
+                entry.grid(row=i, column=j, padx=pad_x, pady=pad_y)
+                self.attempt_entries[row_num][j] = entry
+
+            row_num += 1
+
+        # Create button for submitting attempt
+        submit_attempt_btn = Button(
+            self.playing_frame,
+            text="Submit",
+            command=self.check_attempt,
+        )
+        submit_attempt_btn.pack(pady=pad_y)
 
     def check_options(self):
         """Test user inputs from dropdown and number pickers before starting game"""
@@ -177,6 +197,21 @@ class GameGUI:
         if all([valid_game_mode, valid_num_chars, valid_num_attempts]):
             self.selection_frame.pack_forget()
             self.get_playing_frame()
+
+    def check_attempt(self):
+        """Test user input in attempt entries"""
+        num_attempts = int(self.num_attempts.get())
+        num_chars = int(self.num_chars.get())
+
+        for char in range(num_chars):
+            self.attempt_entries[self.attempt_num][char].config(state='disabled')
+
+        if self.attempt_num < num_attempts - 1:
+            self.attempt_num += 1
+            
+            for char in range(num_chars):
+                self.attempt_entries[self.attempt_num][char].config(state='enabled')
+
 
     def test_mode_input(self, input_field):
         """Tests if game mode is selected correctly by user"""
