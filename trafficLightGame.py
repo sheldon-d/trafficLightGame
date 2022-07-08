@@ -37,6 +37,9 @@ class GameGUI:
         self.game_mode = tk.StringVar()
         self.num_chars = tk.StringVar()
         self.num_attempts = tk.StringVar()
+        self.num_chars_range = (3, 7)
+        self.num_attempts_range = (5, 10)
+        self.default_num = "5"
         self.game_mode_dropdown = None
         self.num_chars_entry = None
         self.num_attempts_entry = None
@@ -73,8 +76,8 @@ class GameGUI:
 
         # Set the initial selection for options
         self.game_mode.set(self.game_modes[0])
-        self.num_chars.set("5")
-        self.num_attempts.set("5")
+        self.num_chars.set(self.default_num)
+        self.num_attempts.set(self.default_num)
 
         # Create dropdown for selecting game mode
         self.game_mode_dropdown = Combobox(
@@ -88,8 +91,8 @@ class GameGUI:
         # Create number picker for selecting number of characters
         self.num_chars_entry = Spinbox(
             options_frame,
-            from_=5,
-            to=10,
+            from_=self.num_chars_range[0],
+            to=self.num_chars_range[1],
             width=31,
             textvariable=self.num_chars
         )
@@ -98,8 +101,8 @@ class GameGUI:
         # Create number picker for selecting number of attempts
         self.num_attempts_entry = Spinbox(
             options_frame,
-            from_=5,
-            to=10,
+            from_=self.num_attempts_range[0],
+            to=self.num_attempts_range[1],
             width=31,
             textvariable=self.num_attempts
         )
@@ -131,27 +134,45 @@ class GameGUI:
         chars_frame = Frame(self.playing_frame)
         chars_frame.pack()
 
-        for i in range(num_attempts):
+        game_mode = self.game_modes.index(self.game_mode.get())
+        place_vals = ["M", "HTh", "TTh", "Th", "H", "T", "O"]
+        num_rows = num_attempts
+
+        if game_mode == 0:
+            num_rows += 1
+
+        for i in range(num_rows):
             for j in range(num_chars):
-                entry = Entry(
-                    chars_frame,
-                    width=10,
-                    font=self.style_consts["HEADER_FONT"],
-                    justify='center'
-                )
-                if self.game_modes.index(self.game_mode.get()) == 0:
-                    val_cmd = (chars_frame.register(validate_int_entry), '%P', '%d')
+                if game_mode == 0 and i == 0:
+                    label_idx = (len(place_vals) - num_chars) + j
+                    label = Label(
+                        chars_frame,
+                        text=place_vals[label_idx],
+                        font=self.style_consts["HEADER_FONT"],
+                        justify='center'
+                    )
+                    label.grid(row=i, column=j, padx=pad_x, pady=(pad_y, 0))
+
                 else:
-                    val_cmd = (chars_frame.register(validate_str_entry), '%P', '%d')
-                    entry.bind('<KeyRelease>', to_uppercase)
-                entry.configure(validate="key", validatecommand=val_cmd)
-                entry.grid(row=i, column=j, padx=pad_x, pady=pad_y)
+                    entry = Entry(
+                        chars_frame,
+                        width=10,
+                        font=self.style_consts["HEADER_FONT"],
+                        justify='center'
+                    )
+                    if game_mode == 0:
+                        val_cmd = (chars_frame.register(validate_int_entry), '%P', '%d')
+                    else:
+                        val_cmd = (chars_frame.register(validate_str_entry), '%P', '%d')
+                        entry.bind('<KeyRelease>', to_uppercase)
+                    entry.configure(validate="key", validatecommand=val_cmd)
+                    entry.grid(row=i, column=j, padx=pad_x, pady=pad_y)
 
     def check_options(self):
         """Test user inputs from dropdown and number pickers before starting game"""
         valid_game_mode = self.test_mode_input(self.game_mode_dropdown)
-        valid_num_chars = self.test_int_input(self.num_chars_entry)
-        valid_num_attempts = self.test_int_input(self.num_attempts_entry)
+        valid_num_chars = self.test_int_input(self.num_chars_entry, self.num_chars_range)
+        valid_num_attempts = self.test_int_input(self.num_attempts_entry, self.num_attempts_range)
 
         if all([valid_game_mode, valid_num_chars, valid_num_attempts]):
             self.selection_frame.pack_forget()
@@ -178,7 +199,7 @@ class GameGUI:
 
         return change_frame
 
-    def test_int_input(self, input_field):
+    def test_int_input(self, input_field, input_range):
         """Tests if integers are input correcly by user"""
 
         value = input_field.get()  # gets value from entry
@@ -188,7 +209,7 @@ class GameGUI:
             change_frame = True
             number = int(value)  # Returns true if number contains integers only
 
-            if number < 5 or number > 10:  # Returns false if number is negative (less than 0)
+            if number < input_range[0] or number > input_range[1]:  # Returns false if number is negative (less than 0)
                 raise ValueError
 
         except ValueError:
