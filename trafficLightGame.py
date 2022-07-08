@@ -23,7 +23,7 @@ class GameGUI:
         }
 
         # Configuring style using constants
-        style = Style(parent)
+        style = Style()
         style.configure('TLabel', font=self.style_consts["LABEL_FONT"])
         style.configure('header.TFrame', background=self.style_consts["BG_COL"])
         style.configure('header.TLabel', background=self.style_consts["BG_COL"], font=self.style_consts["HEADER_FONT"])
@@ -118,11 +118,34 @@ class GameGUI:
         pad_x = self.style_consts["PAD_X"]
         pad_y = self.style_consts["PAD_Y"]
 
+        num_attempts = int(self.num_attempts.get())
+        num_chars = int(self.num_chars.get())
+
         # Create header for selection data frame
         header_frame = Frame(self.playing_frame, style='header.TFrame')
         header_frame.pack(fill=tk.X)
         header_label = Label(header_frame, text=f"Traffic Light {self.game_mode.get()} Game", style='header.TLabel')
         header_label.pack(pady=pad_y)
+
+        # Set up character frame
+        chars_frame = Frame(self.playing_frame)
+        chars_frame.pack()
+
+        for i in range(num_attempts):
+            for j in range(num_chars):
+                entry = Entry(
+                    chars_frame,
+                    width=10,
+                    font=self.style_consts["HEADER_FONT"],
+                    justify='center'
+                )
+                if self.game_modes.index(self.game_mode.get()) == 0:
+                    val_cmd = (chars_frame.register(validate_int_entry), '%P', '%d')
+                else:
+                    val_cmd = (chars_frame.register(validate_str_entry), '%P', '%d')
+                    entry.bind('<KeyRelease>', to_uppercase)
+                entry.configure(validate="key", validatecommand=val_cmd)
+                entry.grid(row=i, column=j, padx=pad_x, pady=pad_y)
 
     def check_options(self):
         """Test user inputs from dropdown and number pickers before starting game"""
@@ -188,6 +211,28 @@ class GameGUI:
         event.widget.config(style='TSpinbox')
         event.widget.delete(0, tk.END)
         event.widget.unbind("<Button>")
+
+
+def validate_int_entry(char, action_type):
+    if action_type == "0":
+        return True
+
+    if char.isdigit() and len(char) == 1:
+        return True
+    return False
+
+def validate_str_entry(char, action_type):
+    if action_type == "0":
+        return True
+
+    if char.isalpha() and len(char) == 1:
+        return True
+    return False
+
+def to_uppercase(event):
+    val = event.widget.get().upper()
+    event.widget.delete(0, tk.END)
+    event.widget.insert(0, val)
 
 def main():
     root = tk.Tk()
