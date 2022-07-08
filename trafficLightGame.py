@@ -14,25 +14,34 @@ class GameGUI:
         # Dictionary of constants for formatting and styling
         self.style_consts = {
             "BG_COL": "lightgrey",
+            "ERR_BG_COL": "lightred",
             "HEADER_FONT": ("Helvetica", 16, "bold"),
             "LABEL_FONT": ("Calibri", 12),
             "BTN_FONT": ("Helvetica", 12),
             "PAD_X": 15,
-            "PAD_Y": 15
+            "PAD_Y": 20
         }
 
         # Configuring style using constants
         style = Style(parent)
         style.configure('TLabel', font=self.style_consts["LABEL_FONT"])
+        style.configure('TCombobox', foreground="black")
+        style.configure('TSpinbox', foreground="black")
+        style.configure('error.TCombobox', foreground="red")
+        style.configure('error.TSpinbox', foreground="red")
         style.configure('header.TFrame', background=self.style_consts["BG_COL"])
         style.configure('header.TLabel', background=self.style_consts["BG_COL"], font=self.style_consts["HEADER_FONT"])
         style.configure('TButton', font=self.style_consts["BTN_FONT"])
 
         self.phrases = []  # List for phrases to be appended to
         self.game_modes = ["Number", "Word"]  # List of game modes
+
         self.game_mode = tk.StringVar()
         self.num_chars = tk.StringVar()
         self.num_attempts = tk.StringVar()
+        self.game_mode_dropdown = None
+        self.num_chars_entry = None
+        self.num_attempts_entry = None
 
         # Create selection frame for selecting game options
         self.selection_frame = Frame(parent)
@@ -67,33 +76,33 @@ class GameGUI:
         self.num_attempts.set("Select attempt count")
 
         # Create dropdown for selecting game mode
-        game_mode_dropdown = Combobox(
+        self.game_mode_dropdown = Combobox(
             options_frame,
-            width=20,
+            width=30,
             textvariable=self.game_mode,
             values=self.game_modes
         )
-        game_mode_dropdown.grid(row=1, column=1, sticky=tk.NW, padx=pad_x, pady=pad_y)
+        self.game_mode_dropdown.grid(row=1, column=1, sticky=tk.NW, padx=pad_x, pady=pad_y)
 
         # Create number picker for selecting number of characters
-        num_chars_entry = Spinbox(
+        self.num_chars_entry = Spinbox(
             options_frame,
             from_=5,
             to=10,
-            width=21,
+            width=31,
             textvariable=self.num_chars
         )
-        num_chars_entry.grid(row=2, column=1, sticky=tk.NW, padx=pad_x, pady=pad_y)
+        self.num_chars_entry.grid(row=2, column=1, sticky=tk.NW, padx=pad_x, pady=pad_y)
 
         # Create number picker for selecting number of attempts
-        num_attempts_entry = Spinbox(
+        self.num_attempts_entry = Spinbox(
             options_frame,
             from_=5,
             to=10,
-            width=21,
+            width=31,
             textvariable=self.num_attempts
         )
-        num_attempts_entry.grid(row=3, column=1, sticky=tk.NW, padx=pad_x, pady=pad_y)
+        self.num_attempts_entry.grid(row=3, column=1, sticky=tk.NW, padx=pad_x, pady=pad_y)
 
         # Create button for starting game
         start_game_btn = Button(
@@ -105,8 +114,64 @@ class GameGUI:
 
     def check_options(self):
         """Test user inputs from dropdown and number pickers before starting game"""
-        pass
+        valid_game_mode = self.test_mode_input(self.game_mode_dropdown)
+        valid_num_chars = self.test_int_input(self.num_chars_entry)
+        valid_num_attempts = self.test_int_input(self.num_attempts_entry)
 
+    def test_mode_input(self, input_field):
+        """Tests if game mode is selected correctly by user"""
+
+        value = input_field.get()  # gets value from entry
+        error_text = "Please choose a game mode"
+
+        try:
+            change_frame = True
+
+            if value not in self.game_modes:
+                raise ValueError
+
+        except ValueError:
+            input_field.config(style='error.TCombobox')  # Changes entry colour to indicate error
+            input_field.delete(0, tk.END)  # Clears entry
+            input_field.insert(0, error_text)  # Inserts error message
+            input_field.bind("<Button>", self.clear_dropdown)
+            change_frame = False
+
+        return change_frame
+
+    def test_int_input(self, input_field):
+        """Tests if integers are input correcly by user"""
+
+        value = input_field.get()  # gets value from entry
+        error_text = "Please choose a valid number"
+
+        try:
+            change_frame = True
+            number = int(value)  # Returns true if number contains integers only
+
+            if number < 5 or number > 10:  # Returns false if number is negative (less than 0)
+                raise ValueError
+
+        except ValueError:
+            input_field.config(style='error.TSpinbox')  # Changes entry colour to indicate error
+            input_field.delete(0, tk.END)  # Clears entry
+            input_field.insert(0, error_text)  # Inserts error message
+            input_field.bind("<Button>", self.clear_entry)
+            change_frame = False
+
+        return change_frame  # Returns value to check_booking method
+
+    def clear_dropdown(self, event):
+        """Clears error message from dropdown when clicked"""
+        event.widget.config(style='TCombobox')
+        event.widget.delete(0, tk.END)
+        event.widget.unbind("<Button>")
+
+    def clear_entry(self, event):
+        """Clears error message from entry when clicked"""
+        event.widget.config(style='TSpinbox')
+        event.widget.delete(0, tk.END)
+        event.widget.unbind("<Button>")
 
 def main():
     root = tk.Tk()
