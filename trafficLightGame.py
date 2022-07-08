@@ -44,6 +44,7 @@ class GameGUI:
         self.num_chars_entry = None
         self.num_attempts_entry = None
         self.attempt_entries = None
+        self.attempts = None
         self.attempt_num = 0
 
         # Create selection frame for selecting game options
@@ -126,6 +127,7 @@ class GameGUI:
         num_attempts = int(self.num_attempts.get())
         num_chars = int(self.num_chars.get())
         self.attempt_entries = [["" for x in range(num_chars)] for y in range(num_attempts)]
+        self.attempts = ["" for n in range(num_attempts)]
 
         # Create header for selection data frame
         header_frame = Frame(self.playing_frame, style='header.TFrame')
@@ -200,17 +202,25 @@ class GameGUI:
 
     def check_attempt(self):
         """Test user input in attempt entries"""
+        attempt_entry = self.attempt_entries[self.attempt_num]
         num_attempts = int(self.num_attempts.get())
         num_chars = int(self.num_chars.get())
 
+        if any([len(entry.get()) == 0 for entry in attempt_entry]):
+            return
+        else:
+            self.attempts[self.attempt_num] = "".join([entry.get() for entry in attempt_entry])
+        print(self.attempts)
+
         for char in range(num_chars):
-            self.attempt_entries[self.attempt_num][char].config(state='disabled')
+            attempt_entry[char].config(state='disabled')
 
         if self.attempt_num < num_attempts - 1:
             self.attempt_num += 1
-            
+            attempt_entry = self.attempt_entries[self.attempt_num]
+
             for char in range(num_chars):
-                self.attempt_entries[self.attempt_num][char].config(state='enabled')
+                attempt_entry[char].config(state='enabled')
 
 
     def test_mode_input(self, input_field):
