@@ -25,13 +25,11 @@ class GameGUI:
         # Configuring style using constants
         style = Style(parent)
         style.configure('TLabel', font=self.style_consts["LABEL_FONT"])
-        style.configure('TCombobox', foreground="black")
-        style.configure('TSpinbox', foreground="black")
-        style.configure('error.TCombobox', foreground="red")
-        style.configure('error.TSpinbox', foreground="red")
         style.configure('header.TFrame', background=self.style_consts["BG_COL"])
         style.configure('header.TLabel', background=self.style_consts["BG_COL"], font=self.style_consts["HEADER_FONT"])
         style.configure('TButton', font=self.style_consts["BTN_FONT"])
+        style.configure('error.TCombobox', foreground="red")
+        style.configure('error.TSpinbox', foreground="red")
 
         self.phrases = []  # List for phrases to be appended to
         self.game_modes = ["Number", "Word"]  # List of game modes
@@ -45,10 +43,13 @@ class GameGUI:
 
         # Create selection frame for selecting game options
         self.selection_frame = Frame(parent)
-        self.selection_frame.pack(fill=tk.X)
         self.get_selection_frame()
 
+        # Create selection frame for selecting game options
+        self.playing_frame = Frame(parent)
+
     def get_selection_frame(self):
+        self.selection_frame.pack(fill=tk.X)
         pad_x = self.style_consts["PAD_X"]
         pad_y = self.style_consts["PAD_Y"]
 
@@ -71,9 +72,9 @@ class GameGUI:
         num_attempts_label.grid(row=3, column=0, sticky=tk.NW, padx=pad_x, pady=pad_y)
 
         # Set the initial selection for options
-        self.game_mode.set("Select game mode")
-        self.num_chars.set("Select character count")
-        self.num_attempts.set("Select attempt count")
+        self.game_mode.set(self.game_modes[0])
+        self.num_chars.set("5")
+        self.num_attempts.set("5")
 
         # Create dropdown for selecting game mode
         self.game_mode_dropdown = Combobox(
@@ -112,11 +113,26 @@ class GameGUI:
         )
         start_game_btn.pack(pady=pad_y)
 
+    def get_playing_frame(self):
+        self.playing_frame.pack(fill=tk.X)
+        pad_x = self.style_consts["PAD_X"]
+        pad_y = self.style_consts["PAD_Y"]
+
+        # Create header for selection data frame
+        header_frame = Frame(self.playing_frame, style='header.TFrame')
+        header_frame.pack(fill=tk.X)
+        header_label = Label(header_frame, text=f"Traffic Light {self.game_mode.get()} Game", style='header.TLabel')
+        header_label.pack(pady=pad_y)
+
     def check_options(self):
         """Test user inputs from dropdown and number pickers before starting game"""
         valid_game_mode = self.test_mode_input(self.game_mode_dropdown)
         valid_num_chars = self.test_int_input(self.num_chars_entry)
         valid_num_attempts = self.test_int_input(self.num_attempts_entry)
+
+        if all([valid_game_mode, valid_num_chars, valid_num_attempts]):
+            self.selection_frame.pack_forget()
+            self.get_playing_frame()
 
     def test_mode_input(self, input_field):
         """Tests if game mode is selected correctly by user"""
@@ -159,7 +175,7 @@ class GameGUI:
             input_field.bind("<Button>", self.clear_entry)
             change_frame = False
 
-        return change_frame  # Returns value to check_booking method
+        return change_frame
 
     def clear_dropdown(self, event):
         """Clears error message from dropdown when clicked"""
