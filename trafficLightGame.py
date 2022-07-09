@@ -44,17 +44,20 @@ class GameGUI:
         self.game_mode = tk.StringVar()
         self.num_chars = tk.StringVar()
         self.num_attempts = tk.StringVar()
+        self.submit_attempt_btn = Button()
         self.num_chars_range = (3, 7)
         self.num_attempts_range = (5, 10)
         self.default_num = "5"
+
         self.active_entry = None
-        self.game_mode_dropdown = None
         self.num_chars_entry = None
         self.num_attempts_entry = None
+        self.game_mode_dropdown = None
+
+        self.attempt_num = 0
         self.attempt_entries = None
         self.attempts = None
         self.attempt_label = None
-        self.attempt_num = 0
 
         # Create selection frame for selecting game options
         self.selection_frame = Frame(parent)
@@ -136,8 +139,8 @@ class GameGUI:
 
         num_attempts = int(self.num_attempts.get())
         num_chars = int(self.num_chars.get())
-        self.attempt_entries = [["" for x in range(num_chars)] for y in range(num_attempts)]
-        self.attempts = ["" for n in range(num_attempts)]
+        self.attempt_entries = [["" for _ in range(num_chars)] for _ in range(num_attempts)]
+        self.attempts = ["" for _ in range(num_attempts)]
 
         # Create header for selection data frame
         header_frame = Frame(self.playing_frame, style='header.TFrame')
@@ -205,16 +208,25 @@ class GameGUI:
         submit_frame = Frame(self.playing_frame)
         submit_frame.pack()
 
+        # Create button for changing mode
+        change_mode_btn = Button(
+            submit_frame,
+            text="Change mode",
+            command=self.new_selection_frame,
+        )
+        change_mode_btn.grid(row=0, column=0, pady=pad_y)
+
         # Create button for submitting attempt
-        submit_attempt_btn = Button(
+        self.submit_attempt_btn = Button(
             submit_frame,
             text="Submit",
             command=self.check_attempt,
         )
-        submit_attempt_btn.grid(row=0, column=0, padx=pad_x, pady=pad_y)
+        self.submit_attempt_btn.grid(row=0, column=1, padx=5*pad_x, pady=pad_y)
+
         self.parent.bind("<Return>", self.check_attempt_event)
         self.attempt_label = Label(submit_frame, text=f"{self.attempt_num} attempts", style="attempts.TLabel")
-        self.attempt_label.grid(row=0, column=1, padx=pad_x, pady=pad_y)
+        self.attempt_label.grid(row=0, column=2, pady=pad_y)
 
     def check_options(self):
         """Test user inputs from dropdown and number pickers before starting game"""
@@ -224,7 +236,7 @@ class GameGUI:
 
         if all([valid_game_mode, valid_num_chars, valid_num_attempts]):
             self.selection_frame.pack_forget()
-            self.get_playing_frame()
+            self.new_playing_frame()
 
     def check_attempt(self):
         """Test user input in attempt entries"""
@@ -234,6 +246,7 @@ class GameGUI:
         self.attempt_label.config(style="attempts.TLabel")
 
         if self.attempt_num >= num_attempts or self._phrase in self.attempts:
+            self.new_playing_frame()
             return
 
         attempt_entry = self.attempt_entries[self.attempt_num]
@@ -256,17 +269,34 @@ class GameGUI:
 
         if attempt == self._phrase:
             self.attempt_label.config(text=f"Found in {self.attempt_num} attempts")
+            self.submit_attempt_btn.config(text="Play again")
         elif self.attempt_num == num_attempts:
             if game_mode == 0:
                 self.attempt_label.config(text=f"Number was {self._phrase}")
             else:
                 self.attempt_label.config(text=f"Word was {self._phrase}")
+            self.submit_attempt_btn.config(text="Play again")
         else:
             self.attempt_label.config(text=f"{self.attempt_num} attempts")
             attempt_entry = self.attempt_entries[self.attempt_num]
             for char in range(num_chars):
                 attempt_entry[char].config(state='enabled')
         self.entry_next()
+
+    def new_selection_frame(self):
+        self.destroy_frames()
+        self.selection_frame = Frame(self.parent)
+        self.get_selection_frame()
+
+    def new_playing_frame(self):
+        self.destroy_frames()
+        self.playing_frame = Frame(self.parent)
+        self.get_playing_frame()
+
+    def destroy_frames(self):
+        self.selection_frame.destroy()
+        self.playing_frame.destroy()
+        self.attempt_num = 0
 
     def test_mode_input(self, input_field):
         """Tests if game mode is selected correctly by user"""
@@ -290,7 +320,7 @@ class GameGUI:
         return change_frame
 
     def test_int_input(self, input_field, input_range):
-        """Tests if integers are input correcly by user"""
+        """Tests if integers are input correctly by user"""
 
         value = input_field.get()  # gets value from entry
         error_text = "Please choose a valid number"
@@ -376,7 +406,7 @@ class GameGUI:
 def main():
     root = tk.Tk()
     root.title("Traffic Light Game")
-    phrases = GameGUI(root)
+    GameGUI(root)
     root.mainloop()
 
 
