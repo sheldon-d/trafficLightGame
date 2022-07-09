@@ -4,6 +4,7 @@ Description: Traffic light game which lets users guess a number or phrase of dif
 
 import tkinter as tk
 from tkinter.ttk import *
+from phrases import *
 
 
 class GameGUI:
@@ -18,6 +19,7 @@ class GameGUI:
             "HEADER_FONT": ("Helvetica", 16, "bold"),
             "LABEL_FONT": ("Calibri", 12),
             "BTN_FONT": ("Helvetica", 12),
+            "ATTEMPT_LABEL_FONT": ("Helvetica", 12),
             "PAD_X": 15,
             "PAD_Y": 20
         }
@@ -30,8 +32,12 @@ class GameGUI:
         style.configure('TButton', font=self.style_consts["BTN_FONT"])
         style.configure('error.TCombobox', foreground="red")
         style.configure('error.TSpinbox', foreground="red")
+        style.configure('correct.TLabel', background="lightgreen")
+        style.configure('valid.TLabel', background="orange")
+        style.configure('incorrect.TLabel', background="dark salmon")
+        style.configure('attempts.TLabel', font=self.style_consts["ATTEMPT_LABEL_FONT"])
 
-        self.phrases = []  # List for phrases to be appended to
+        self._phrase = ""
         self.game_modes = ["Number", "Word"]  # List of game modes
 
         self.game_mode = tk.StringVar()
@@ -45,6 +51,7 @@ class GameGUI:
         self.num_attempts_entry = None
         self.attempt_entries = None
         self.attempts = None
+        self.attempt_label = None
         self.attempt_num = 0
 
         # Create selection frame for selecting game options
@@ -145,6 +152,7 @@ class GameGUI:
         end_row = num_attempts
 
         if game_mode == 0:
+            self._phrase = get_random_number(num_chars)
             start_row += 1
             end_row += 1
 
@@ -157,6 +165,9 @@ class GameGUI:
                     justify='center'
                 )
                 label.grid(row=0, column=n, padx=pad_x, pady=(pad_y, 0))
+        else:
+            self._phrase = get_random_word(num_chars)
+        print(self._phrase)
 
         row_num = 0
         for i in range(start_row, end_row):
@@ -182,13 +193,19 @@ class GameGUI:
 
             row_num += 1
 
+        # Set up submit frame
+        submit_frame = Frame(self.playing_frame)
+        submit_frame.pack()
+
         # Create button for submitting attempt
         submit_attempt_btn = Button(
-            self.playing_frame,
+            submit_frame,
             text="Submit",
             command=self.check_attempt,
         )
-        submit_attempt_btn.pack(pady=pad_y)
+        submit_attempt_btn.grid(row=0, column=0, padx=pad_x, pady=pad_y)
+        self.attempt_label = Label(submit_frame, text=f"{self.attempt_num} attempts", style="attempts.TLabel")
+        self.attempt_label.grid(row=0, column=1, padx=pad_x, pady=pad_y)
 
     def check_options(self):
         """Test user inputs from dropdown and number pickers before starting game"""
@@ -202,26 +219,42 @@ class GameGUI:
 
     def check_attempt(self):
         """Test user input in attempt entries"""
-        attempt_entry = self.attempt_entries[self.attempt_num]
         num_attempts = int(self.num_attempts.get())
         num_chars = int(self.num_chars.get())
+        game_mode = self.game_modes.index(self.game_mode.get())
 
+        if self.attempt_num >= num_attempts:
+            return
+
+        attempt_entry = self.attempt_entries[self.attempt_num]
         if any([len(entry.get()) == 0 for entry in attempt_entry]):
             return
-        else:
-            self.attempts[self.attempt_num] = "".join([entry.get() for entry in attempt_entry])
-        print(self.attempts)
+
+        attempt = "".join([entry.get() for entry in attempt_entry])
+        self.attempts[self.attempt_num] = attempt
 
         for char in range(num_chars):
-            attempt_entry[char].config(state='disabled')
+            if attempt_entry[char].get() == self._phrase[char]:
+                attempt_entry[char].config(state='disabled', style="correct.TLabel")
+            elif attempt_entry[char].get() in self._phrase:
+                attempt_entry[char].config(state='disabled', style="valid.TLabel")
+            else:
+                attempt_entry[char].config(state='disabled', style="incorrect.TLabel")
 
-        if self.attempt_num < num_attempts - 1:
-            self.attempt_num += 1
+        self.attempt_num += 1
+        
+        if attempt == self._phrase:
+            self.attempt_label.config(text=f"Found in {self.attempt_num} attempts")
+        elif self.attempt_num == num_attempts:
+            if game_mode == 0:
+                self.attempt_label.config(text=f"Number was {self._phrase}")
+            else:
+                self.attempt_label.config(text=f"Word was {self._phrase}")
+        else:
+            self.attempt_label.config(text=f"{self.attempt_num} attempts")
             attempt_entry = self.attempt_entries[self.attempt_num]
-
             for char in range(num_chars):
                 attempt_entry[char].config(state='enabled')
-
 
     def test_mode_input(self, input_field):
         """Tests if game mode is selected correctly by user"""
