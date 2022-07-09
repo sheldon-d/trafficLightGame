@@ -15,7 +15,6 @@ class GameGUI:
         # Dictionary of constants for formatting and styling
         self.style_consts = {
             "BG_COL": "lightgrey",
-            "ERR_BG_COL": "lightred",
             "HEADER_FONT": ("Helvetica", 16, "bold"),
             "LABEL_FONT": ("Calibri", 12),
             "BTN_FONT": ("Helvetica", 12),
@@ -36,7 +35,9 @@ class GameGUI:
         style.configure('valid.TLabel', background="orange")
         style.configure('incorrect.TLabel', background="dark salmon")
         style.configure('attempts.TLabel', font=self.style_consts["ATTEMPT_LABEL_FONT"])
+        style.configure('errorAttempt.TLabel', font=self.style_consts["ATTEMPT_LABEL_FONT"], foreground="red")
 
+        self.parent = parent
         self._phrase = ""
         self.game_modes = ["Number", "Word"]  # List of game modes
 
@@ -46,6 +47,7 @@ class GameGUI:
         self.num_chars_range = (3, 7)
         self.num_attempts_range = (5, 10)
         self.default_num = "5"
+        self.active_entry = None
         self.game_mode_dropdown = None
         self.num_chars_entry = None
         self.num_attempts_entry = None
@@ -124,6 +126,7 @@ class GameGUI:
             text="Start game",
             command=self.check_options,
         )
+        self.parent.bind("<Return>", self.check_options_event)
         start_game_btn.pack(pady=pad_y)
 
     def get_playing_frame(self):
@@ -172,26 +175,31 @@ class GameGUI:
         row_num = 0
         for i in range(start_row, end_row):
             for j in range(num_chars):
+                entry_text = tk.StringVar()
                 entry = Entry(
                     chars_frame,
                     width=10,
                     font=self.style_consts["HEADER_FONT"],
-                    justify='center'
+                    justify='center',
+                    textvariable=entry_text
                 )
                 if row_num > 0:
                     entry.config(state='disabled')
 
                 if game_mode == 0:
-                    val_cmd = (chars_frame.register(validate_int_entry), '%P', '%d')
+                    val_cmd = (chars_frame.register(self.validate_int_entry), '%P', '%d')
                 else:
-                    val_cmd = (chars_frame.register(validate_str_entry), '%P', '%d')
-                    entry.bind('<KeyRelease>', to_uppercase)
-                    entry.bind('<FocusOut>', to_uppercase)
+                    val_cmd = (chars_frame.register(self.validate_str_entry), '%P', '%d')
+                    entry.bind('<KeyRelease>', self.to_uppercase)
+                    entry.bind('<FocusOut>', self.to_uppercase)
                 entry.configure(validate="key", validatecommand=val_cmd)
                 entry.grid(row=i, column=j, padx=pad_x, pady=pad_y)
                 self.attempt_entries[row_num][j] = entry
 
             row_num += 1
+
+        self.active_entry = self.attempt_entries[0][0]
+        self.entry_next()
 
         # Set up submit frame
         submit_frame = Frame(self.playing_frame)
@@ -204,6 +212,7 @@ class GameGUI:
             command=self.check_attempt,
         )
         submit_attempt_btn.grid(row=0, column=0, padx=pad_x, pady=pad_y)
+        self.parent.bind("<Return>", self.check_attempt_event)
         self.attempt_label = Label(submit_frame, text=f"{self.attempt_num} attempts", style="attempts.TLabel")
         self.attempt_label.grid(row=0, column=1, padx=pad_x, pady=pad_y)
 
@@ -222,12 +231,14 @@ class GameGUI:
         num_attempts = int(self.num_attempts.get())
         num_chars = int(self.num_chars.get())
         game_mode = self.game_modes.index(self.game_mode.get())
+        self.attempt_label.config(style="attempts.TLabel")
 
-        if self.attempt_num >= num_attempts:
+        if self.attempt_num >= num_attempts or self._phrase in self.attempts:
             return
 
         attempt_entry = self.attempt_entries[self.attempt_num]
         if any([len(entry.get()) == 0 for entry in attempt_entry]):
+            self.attempt_label.config(text="Please fill in all characters", style="errorAttempt.TLabel")
             return
 
         attempt = "".join([entry.get() for entry in attempt_entry])
@@ -242,7 +253,7 @@ class GameGUI:
                 attempt_entry[char].config(state='disabled', style="incorrect.TLabel")
 
         self.attempt_num += 1
-        
+
         if attempt == self._phrase:
             self.attempt_label.config(text=f"Found in {self.attempt_num} attempts")
         elif self.attempt_num == num_attempts:
@@ -255,6 +266,7 @@ class GameGUI:
             attempt_entry = self.attempt_entries[self.attempt_num]
             for char in range(num_chars):
                 attempt_entry[char].config(state='enabled')
+        self.entry_next()
 
     def test_mode_input(self, input_field):
         """Tests if game mode is selected correctly by user"""
@@ -299,6 +311,12 @@ class GameGUI:
 
         return change_frame
 
+    def check_options_event(self, event):
+        self.check_options()
+
+    def check_attempt_event(self, event):
+        self.check_attempt()
+
     def clear_dropdown(self, event):
         """Clears error message from dropdown when clicked"""
         event.widget.config(style='TCombobox')
@@ -311,27 +329,34 @@ class GameGUI:
         event.widget.delete(0, tk.END)
         event.widget.unbind("<Button>")
 
+    def validate_int_entry(self, char, action_type):
+        if action_type == "0":
+            return True
 
-def validate_int_entry(char, action_type):
-    if action_type == "0":
-        return True
+        if char.isdigit() and len(char) == 1:
+            self.entry_next()
+            return True
+        return False
 
-    if char.isdigit() and len(char) == 1:
-        return True
-    return False
+    def validate_str_entry(self, char, action_type):
+        if action_type == "0":
+            return True
 
-def validate_str_entry(char, action_type):
-    if action_type == "0":
-        return True
+        if char.isalpha() and len(char) == 1:
+            return True
+        return False
 
-    if char.isalpha() and len(char) == 1:
-        return True
-    return False
+    def to_uppercase(self, event):
+        if event.widget.get().islower():
+            val = event.widget.get().upper()
+            event.widget.delete(0, tk.END)
+            event.widget.insert(0, val)
+            self.entry_next()
 
-def to_uppercase(event):
-    val = event.widget.get().upper()
-    event.widget.delete(0, tk.END)
-    event.widget.insert(0, val)
+    def entry_next(self):
+        self.active_entry = self.active_entry.tk_focusNext()
+        self.active_entry.focus()
+
 
 def main():
     root = tk.Tk()
