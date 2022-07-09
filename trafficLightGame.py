@@ -175,13 +175,11 @@ class GameGUI:
         row_num = 0
         for i in range(start_row, end_row):
             for j in range(num_chars):
-                entry_text = tk.StringVar()
                 entry = Entry(
                     chars_frame,
                     width=10,
                     font=self.style_consts["HEADER_FONT"],
-                    justify='center',
-                    textvariable=entry_text
+                    justify='center'
                 )
                 if row_num > 0:
                     entry.config(state='disabled')
@@ -194,6 +192,8 @@ class GameGUI:
                     entry.bind('<FocusOut>', self.to_uppercase)
                 entry.configure(validate="key", validatecommand=val_cmd)
                 entry.grid(row=i, column=j, padx=pad_x, pady=pad_y)
+                entry.bind('<FocusIn>', self.set_active)
+                entry.bind('<BackSpace>', self.clear_active)
                 self.attempt_entries[row_num][j] = entry
 
             row_num += 1
@@ -343,6 +343,8 @@ class GameGUI:
             return True
 
         if char.isalpha() and len(char) == 1:
+            if char.isupper():
+                self.entry_next()
             return True
         return False
 
@@ -351,10 +353,23 @@ class GameGUI:
             val = event.widget.get().upper()
             event.widget.delete(0, tk.END)
             event.widget.insert(0, val)
-            self.entry_next()
+
+    def set_active(self, event):
+        self.active_entry = event.widget
+
+    def clear_active(self, event):
+        self.active_entry = event.widget
+        event.widget.delete(0, tk.END)
+        self.entry_prev()
 
     def entry_next(self):
-        self.active_entry = self.active_entry.tk_focusNext()
+        if not isinstance(self.active_entry.tk_focusNext(), Button):
+            self.active_entry = self.active_entry.tk_focusNext()
+        self.active_entry.focus()
+
+    def entry_prev(self):
+        if not isinstance(self.active_entry.tk_focusPrev(), Button):
+            self.active_entry = self.active_entry.tk_focusPrev()
         self.active_entry.focus()
 
 
