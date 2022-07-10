@@ -14,7 +14,7 @@ class GameGUI:
 
         # Dictionary of constants for formatting and styling
         self.style_consts = {
-            "BG_COL": "lightgrey",
+            "BG_COL": "lightblue",
             "HEADER_FONT": ("Helvetica", 16, "bold"),
             "LABEL_FONT": ("Calibri", 12),
             "BTN_FONT": ("Helvetica", 12),
@@ -410,4 +410,5 @@ def main():
     root.mainloop()
 
 
-main()
+if __name__ == "__main__":
+    main()
